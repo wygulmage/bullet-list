@@ -6,13 +6,17 @@ module Data.List.Bullet
 
 import Control.Applicative (Applicative (pure, liftA2))
 import Data.Traversable (Traversable, fmapDefault, foldMapDefault)
+import Data.Typeable
 
 
 -- A snoc list:
 data List a
    = List
    | List a :> a
+   deriving (Typeable, Show)
+
 infixl 5 :>
+
 
 (•) :: List a -> a -> List a
 (•) = (:>)
