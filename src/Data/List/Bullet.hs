@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeFamilies #-}
+
+
 module Data.List.Bullet
    ( List (..)
    , (•)
@@ -5,8 +8,10 @@ module Data.List.Bullet
 
 
 import Control.Applicative (Applicative (pure, liftA2))
+import Data.Foldable (Foldable (foldl), foldr', foldl')
 import Data.Traversable (Traversable, fmapDefault, foldMapDefault)
 import Data.Typeable
+import GHC.Exts (IsList(..))
 
 
 -- A snoc list:
@@ -31,6 +36,11 @@ infixl 1 •
 
 ----- Instances -----
 
+instance IsList (List a) where
+   type Item (List a) = a
+   toList = foldr' (:) []
+   fromList = foldl' (:>) List
+
 instance Semigroup (List a) where
    (<>) xs = loop
       where
@@ -47,7 +57,11 @@ instance Functor List where
    -- fmap _ _ = List
 
 instance Foldable List where
-   foldMap = foldMapDefault
+   foldl f z = loop
+      where
+      loop (xs :> x) = loop xs `f` x
+      loop _ = z
+   foldMap f = foldl (flip (flip (<>) . f)) mempty
 
 instance Traversable List where
    traverse f = loop
