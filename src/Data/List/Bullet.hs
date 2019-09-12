@@ -12,9 +12,9 @@ module Data.List.Bullet
    ) where
 
 
-import Prelude (Show, Bool (..), Maybe (..), (+), (-), (>), uncurry)
+import Prelude (Show, Integral, Bool (..), Either (..), Maybe (..), (+), (-), (>), (<=), flip, fromIntegral, otherwise, uncurry)
 import Control.Applicative (Applicative (pure, liftA2))
-import Control.Category ((.))
+import Control.Category ((.), id)
 import Data.Semigroup
 import Data.Monoid
 import Data.Foldable (Foldable (fold, foldMap, foldl, length, null), foldr', foldl')
@@ -117,6 +117,18 @@ zipWith f = loop
    loop (xs :> x) (ys :> y) = loop xs ys :> f x y
    loop _ _ = List
 
+drop :: Integral n => n -> List a -> List a
+-- Drop from the 'positive' 'left' end or the 'negative' 'right' end.
+drop n
+  | n <= 0 = dropR' n
+  | otherwise = dropL' n
+  where
+  dropR' 0 xs = xs
+  dropR' n' (xs :> _) = dropR' (n' + 1) xs
+  dropR' _ _ = List
+  dropL' n' xs = zipWith pure xs (dropR (fromIntegral n') xs)
+
+
 dropR :: Natural → List a -> List a
 dropR n (xs :> _) | n > 0 = dropR (n - 1) xs
 dropR _ xs = xs
@@ -127,3 +139,19 @@ takeR _ _ = List
 
 dropL :: Natural -> List a -> List a
 dropL n xs = zipWith pure xs (dropR n xs)
+
+takeL :: Natural -> List a -> List a
+takeL 0 = id
+takeL n = reverse . takeR n . reverse
+
+reverse = foldr' (flip (:>)) List
+
+zipWithRem :: (a -> b -> c) -> List a -> List b -> (List c, Maybe (Either (List a) (List b)))
+zipWithRem f = loop
+   where
+   loop List List = (List, Nothing)
+   loop List ys = (List, Just (Right ys))
+   loop xs List = (List, Just (Left xs))
+   loop (xs :> x) (ys :> y) = (zs :> f x y, rem)
+      where
+      (zs, rem) = loop xs ys
