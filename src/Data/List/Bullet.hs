@@ -12,7 +12,7 @@ module Data.List.Bullet
    ) where
 
 
-import Prelude (Show, Bool (..), Maybe (..), (+), maybe, uncurry)
+import Prelude (Show, Bool (..), Maybe (..), (+), (-), (>), uncurry)
 import Control.Applicative (Applicative (pure, liftA2))
 import Control.Category ((.))
 import Data.Semigroup
@@ -22,6 +22,7 @@ import Data.Functor
 import Data.Traversable (Traversable (traverse), fmapDefault, foldMapDefault)
 import Data.Typeable
 import GHC.Exts (IsList(..))
+import Numeric.Natural (Natural)
 
 
 -- A snoc list:
@@ -62,10 +63,6 @@ instance Monoid (List a) where
    mempty = List
 
 
-instance Functor List where
-   fmap = fmapDefault
-
-
 instance Foldable List where
    fold = foldl (<>) mempty
 
@@ -83,6 +80,10 @@ instance Foldable List where
    null _ = False
 
 
+instance Functor List where
+   fmap = fmapDefault
+
+
 instance Traversable List where
    traverse f = loop
       where
@@ -93,14 +94,14 @@ instance Traversable List where
 
 ----- Functions -----
 
+
 init :: List a -> List a
 init = foldl pure mempty
--- init (xs :> _) = xs
--- init _ = List
+
 
 tail :: List a -> List a
-
-tail = maybe mempty (uncurry loop) . unsnoc
+tail =
+   foldMap (uncurry loop) . unsnoc
    where
    loop (xs :> x') x = loop xs x' :> x
    loop _ _ = List
@@ -109,3 +110,20 @@ tail = maybe mempty (uncurry loop) . unsnoc
 unsnoc :: List a -> Maybe (List a, a)
 unsnoc (xs :> x) = Just (xs, x)
 unsnoc _ = Nothing
+
+zipWith :: (a → b → c) → List a → List b → List c
+zipWith f = loop
+   where
+   loop (xs :> x) (ys :> y) = loop xs ys :> f x y
+   loop _ _ = List
+
+dropR :: Natural → List a -> List a
+dropR n (xs :> _) | n > 0 = dropR (n - 1) xs
+dropR _ xs = xs
+
+takeR :: Natural -> List a -> List a
+takeR n (xs :> x) | n > 0 = takeR (n - 1) xs :> x
+takeR _ _ = List
+
+dropL :: Natural -> List a -> List a
+dropL n xs = zipWith pure xs (dropR n xs)
