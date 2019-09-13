@@ -146,12 +146,11 @@ takeL n = reverse . takeR n . reverse
 
 reverse = foldr' (flip (:>)) List
 
-zipWithRem :: (a -> b -> c) -> List a -> List b -> (List c, Maybe (Either (List a) (List b)))
+zipWithRem :: (a -> b -> c) -> List a -> List b -> (List c, List a, List b)
+-- At least one of the List a and the List b will be empty.
 zipWithRem f = loop
    where
-   loop List List = (List, Nothing)
-   loop List ys = (List, Just (Right ys))
-   loop xs List = (List, Just (Left xs))
-   loop (xs :> x) (ys :> y) = (zs :> f x y, rem)
+   loop (xs :> x) (ys :> y) = (zs :> f x y, xs', ys')
       where
-      (zs, rem) = loop xs ys
+      (zs, xs', ys') = loop xs ys
+   loop xs ys = (List, xs, ys)
